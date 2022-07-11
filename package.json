@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^18.0.3",
     "@types/pino": "^7.0.5",
     "nodemon": "^2.0.19",
     "typescript": "^4.7.4"
@@ -23,6 +24,14 @@
     "@mikro-orm/core": "^5.2.3",
     "@mikro-orm/migrations": "^5.2.3",
     "@mikro-orm/postgresql": "^5.2.3",
-    "pg": "^8.7.3"
+    "pg": "^8.7.3",
+    "ts-node": "^10.8.2"
+  },
+  "mikro-orm": {
+    "useTsNode": true,
+    "configPaths": [
+      "./src/mikro-orm.config.ts",
+      "./dist/mikro-orm.config.js"
+    ]
   }
 }
