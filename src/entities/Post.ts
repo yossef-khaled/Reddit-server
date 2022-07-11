@@ -17,7 +17,7 @@ export class Post {
     @Property({type: 'date', onUpdate: () => new Date() })
     updatedAt = new Date();
 
-    @Field()
+    @Field() //@Field() decorator declares whether this property is a db property or not. If it is not, then it will be hidden from graphql schema
     @Property({type: 'text'})
     title!: string;
 
