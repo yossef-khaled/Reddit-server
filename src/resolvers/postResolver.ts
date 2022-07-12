@@ -49,7 +49,6 @@ export class PostResolver {
         }
         if(title !== 'undefined') {
             post.title = title;
-            post.updatedAt = new Date();
             await em.persistAndFlush(post)
         }
         return post;
