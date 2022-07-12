@@ -5,8 +5,10 @@
 ### Stack used for the back end:
 * **Typescript**
 * **Node JS**
-* **Micro orm**
+* **Micro-orm**
+* **Micro-orm migrations**
 * **PostgreSQL**
 * **Graph QL**
 * **Docker**
 * **Apollo**
+* **Argon2**
