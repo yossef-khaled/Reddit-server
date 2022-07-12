@@ -42,11 +42,33 @@ class UserResponce {
 @Resolver()
 export class UserResolver {
 
-    @Mutation(() => User) //** () => String ** is how you define waht the function returns  
+    @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
         @Ctx() { em } : MyContext
-    ) {
+    ): Promise<UserResponce> {
+        if(options.username.length < 2) {
+            return {
+                errors: [
+                    {
+                        field: 'username',
+                        message: 'Username must be greater than 1 charachter.'
+                    }
+                ]
+            }
+        }
+
+        if(options.password.length <= 8) {
+            return {
+                errors: [
+                    {
+                        field: 'password',
+                        message: 'password must be at least 8 charachters.'
+                    }
+                ]
+            }
+        }
+
         const hashedPassword = await argon2.hash(options.password);
         const user = await em.create(User, { 
             username: options.username, 
@@ -54,7 +76,7 @@ export class UserResolver {
         });  
         em.persistAndFlush(user);
 
-        return user; 
+        return { user }; 
     }
 
     @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
