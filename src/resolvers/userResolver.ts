@@ -52,18 +52,18 @@ export class UserResolver {
                 errors: [
                     {
                         field: 'username',
-                        message: 'Username must be greater than 1 charachter.'
+                        message: 'Username must be at least 2 charachters.'
                     }
                 ]
             }
         }
 
-        if(options.password.length <= 8) {
+        if(options.password.length <= 3) {
             return {
                 errors: [
                     {
                         field: 'password',
-                        message: 'password must be at least 8 charachters.'
+                        message: 'password must be at least 3 charachters.'
                     }
                 ]
             }
@@ -73,8 +73,25 @@ export class UserResolver {
         const user = await em.create(User, { 
             username: options.username, 
             password: hashedPassword 
-        });  
-        em.persistAndFlush(user);
+        });
+
+        //This try catch piece of code is to catch any error from the db. 
+        try {
+            await em.persistAndFlush(user);
+        } catch(err) {
+            console.log("HERREEEEEEEE")
+            if(err.code === '23505') {
+                return {
+                    errors: [
+                        {
+                            field: 'username',
+                            message: 'This username already exists.'
+                        }
+                    ]
+                }
+            }
+            // console.log(err.message);
+        }
 
         return { user }; 
     }
