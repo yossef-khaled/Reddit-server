@@ -5,7 +5,7 @@ import { Post } from "../entities/Post";
 import { MyContext } from "src/types";
 
 //Import from type-graphql 
-import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
 
 @Resolver()
 export class PostResolver {
@@ -53,6 +53,16 @@ export class PostResolver {
             await em.persistAndFlush(post)
         }
         return post;
+    }
+
+    //Mutation decorator is for updating, deleting, & inserting data
+    @Mutation(() => Boolean)
+    async deletePost(
+        @Arg('id') id : number,
+        @Ctx() { em } : MyContext
+    ): Promise<Boolean> {
+        await em.nativeDelete(Post, { id });
+        return true;
     }
 
 }
