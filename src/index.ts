@@ -22,6 +22,7 @@ import { buildSchema } from 'type-graphql';
 //Import resolvers
 import { HelloResolver } from './resolvers/helloResolver';
 import { PostResolver } from './resolvers/postResolver';
+import { UserResolver } from './resolvers/userResolver';
 
 //Import reflect-metadata
 import 'reflect-metadata';
@@ -38,7 +39,7 @@ const main = async () => {
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [HelloResolver, PostResolver],
+            resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false           
         }),
         context: () => ({ em : orm.em })
