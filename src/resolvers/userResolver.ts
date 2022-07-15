@@ -5,7 +5,7 @@ import { User } from "../entities/User";
 import { MyContext } from "src/types";
 
 //Import from type-graghql
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 
 //Import argon2
 import argon2 from 'argon2';
@@ -42,6 +42,19 @@ class UserResponce {
 
 @Resolver()
 export class UserResolver {
+
+    @Query(() => UserResponce, {nullable: true})
+    async me(
+        @Ctx() { em, req, res } : MyContext
+    ) {
+        // You are not logged in
+        if(req.session!.userId) {
+            return null
+        }
+
+        const user = await em.findOne(User, { id: req.session!.userId});
+        return user;
+    }
 
     @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
     async register ( 
