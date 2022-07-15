@@ -9,6 +9,7 @@ import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type
 
 //Import argon2
 import argon2 from 'argon2';
+import { __prod__ } from "../constants";
 
 //This is an alternative way to declare arguments by declaring a class with all the arguments we want
 //Passing one object from this class instead of multiple '@Arg()'s
@@ -99,7 +100,7 @@ export class UserResolver {
     @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
     async login ( 
         @Arg('options') options : UsernamePasswordInput,
-        @Ctx() { em } : MyContext
+        @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
         const user = await em.findOne(User, { username: options.username })
         if(!user) {
@@ -114,17 +115,20 @@ export class UserResolver {
         } 
 
         const validPassword = await argon2.verify(user.password ,options.password);
-        if (validPassword) {
-            return {user};
+        if (!validPassword) {
+            return {
+                errors: [
+                    {
+                        field: 'password',
+                        message: 'Password is incorrect'
+                    }
+                ]
+            }
         }
-        return {
-            errors: [
-                {
-                    field: 'password',
-                    message: 'Password is incorrect'
-                }
-            ]
-        }
+
+        req.session!.userId = user.id;
+
+        return {user};
         
     }
 
