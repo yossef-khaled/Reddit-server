@@ -59,7 +59,7 @@ export class UserResolver {
     @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
-        @Ctx() { em } : MyContext
+        @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
         if(options.username.length < 2) {
             return {
@@ -93,7 +93,6 @@ export class UserResolver {
         try {
             await em.persistAndFlush(user);
         } catch(err) {
-            console.log("HERREEEEEEEE")
             if(err.code === '23505') {
                 return {
                     errors: [
@@ -106,6 +105,8 @@ export class UserResolver {
             }
             // console.log(err.message);
         }
+
+        req.session!.userId = user.id;
 
         return { user }; 
     }
