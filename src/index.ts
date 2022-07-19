@@ -16,6 +16,8 @@ import { ApolloServer } from 'apollo-server-express';
 //Import from graphql
 import { buildSchema } from 'type-graphql';
 
+//Import cors
+import cors from 'cors';
 
 //Import resolvers
 import { HelloResolver } from './resolvers/helloResolver';
@@ -39,6 +41,11 @@ const main = async () => {
     const app = express();
 
     app.set('trust proxy', false);
+
+    app.use(cors({
+        origin: 'http://localhost:3000', // Should specify witch origin can access the server resources 
+        credentials: true, // Should be true if the front-end requires credintials
+    }))
 
     app.use(
         session({
@@ -70,19 +77,15 @@ const main = async () => {
             resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false           
         }),
+        csrfPrevention: true,
+        cache: 'bounded',
         context: ({ req, res }) : MyContext => ({ em : orm.em, req, res })
     });
 
     await apolloServer.start();
-
-    //Create graphql end point with apollo
-    apolloServer.applyMiddleware({ app, cors: {
-        credentials: true,
-        origin: [
-            "https://studio.apollographql.com",
-            "http://localhost:4000/graphql",
-        ]
-    } });
+ 
+    // Create graphql end point with apollo
+    apolloServer.applyMiddleware({ app, cors: false});
 
     app.listen(4000, () => {
         console.log('RUNNING ON PORT 4000....');
