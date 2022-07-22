@@ -72,7 +72,7 @@ export class UserResolver {
             }
         }
 
-        if(options.password.length <= 3) {
+        if(options.password.length < 3) {
             return {
                 errors: [
                     {
@@ -93,7 +93,7 @@ export class UserResolver {
         try {
             await em.persistAndFlush(user);
         } catch(err) {
-            if(err.code === '23505') {
+            if(err.code === '23505' || err.detail.includes('already exists')) {
                 return {
                     errors: [
                         {
