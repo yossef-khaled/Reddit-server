@@ -11,6 +11,9 @@ import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } fro
 import argon2 from 'argon2';
 import { __prod__ } from "../constants";
 
+//Import form @mikro-orm/postgresql
+import { EntityManager } from '@mikro-orm/postgresql'
+
 //This is an alternative way to declare arguments by declaring a class with all the arguments we want
 //Passing one object from this class instead of multiple '@Arg()'s
 @InputType()
@@ -84,14 +87,18 @@ export class UserResolver {
         }
 
         const hashedPassword = await argon2.hash(options.password);
-        const user = await em.create(User, { 
-            username: options.username, 
-            password: hashedPassword 
-        });
+        let user;
 
         //This try catch piece of code is to catch any error from the db. 
         try {
-            await em.persistAndFlush(user);
+            const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
+                username: options.username,
+                password: hashedPassword,
+                created_at: new Date(),
+                updated_at: new Date()
+            })
+            .returning('*');
+            user = result[0];
         } catch(err) {
             if(err.code === '23505' || err.detail.includes('already exists')) {
                 return {
