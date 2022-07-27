@@ -43,7 +43,7 @@ const main = async () => {
     app.set('trust proxy', false);
 
     app.use(cors({
-        origin: 'http://localhost:3000', // Should specify witch origin can access the server resources 
+        origin: ['http://localhost:3000', 'https://studio.apollographql.com'], 
         credentials: true, // Should be true if the front-end requires credintials
     }))
 
