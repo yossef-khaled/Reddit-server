@@ -13,6 +13,7 @@ import { __prod__ } from "../constants";
 
 //Import form @mikro-orm/postgresql
 import { EntityManager } from '@mikro-orm/postgresql'
+import session from "express-session";
 
 //This is an alternative way to declare arguments by declaring a class with all the arguments we want
 //Passing one object from this class instead of multiple '@Arg()'s
@@ -46,20 +47,20 @@ class UserResponce {
 @Resolver()
 export class UserResolver {
 
-    @Query(() => UserResponce, {nullable: true})
-    async me(
-        @Ctx() { em, req, res } : MyContext
-    ) {
+    @Query(() => User, {nullable: true})
+    async me( @Ctx() { em, req, res } : MyContext ) {
+
         // You are not logged in
-        if(req.session!.userId) {
+        if(!req.session!.userId) {
             return null
         }
 
         const user = await em.findOne(User, { id: req.session!.userId});
         return user;
+    
     }
 
-    @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
+    @Mutation(() => UserResponce) // ** () => String ** is how you define waht the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
         @Ctx() { em, req, res } : MyContext
@@ -89,6 +90,11 @@ export class UserResolver {
         const hashedPassword = await argon2.hash(options.password);
         let user;
 
+        // const user = await em.create(User, {
+        //     username: options.username,
+        //     password: hashedPassword 
+        // });
+        
         //This try catch piece of code is to catch any error from the db. 
         try {
             const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
@@ -99,6 +105,9 @@ export class UserResolver {
             })
             .returning('*');
             user = result[0];
+
+            // await em.persistAndFlush(user);
+        
         } catch(err) {
             if(err.code === '23505' || err.detail.includes('already exists')) {
                 return {
