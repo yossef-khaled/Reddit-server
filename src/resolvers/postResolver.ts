@@ -7,12 +7,17 @@ import { MyContext } from "src/types";
 //Import from type-graphql 
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
 
+
+//Create a pseudo delay fetching data 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 @Resolver()
 export class PostResolver {
 
     //Query decorator is for getting data
     @Query(() => [Post]) //** () => String ** is how you define what the function returns  
-    posts(@Ctx() { em } : MyContext): Promise<Post[]> {
+    async posts(@Ctx() { em } : MyContext): Promise<Post[]> {
+        await sleep(3000);
         return em.find(Post, {});
     }
 
