@@ -6,10 +6,8 @@ import { MyContext } from "src/types";
 
 //Import from type-graphql 
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import { sleep } from "../utils/sleep";
 
-
-//Create a pseudo delay fetching data 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 @Resolver()
 export class PostResolver {
