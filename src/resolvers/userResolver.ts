@@ -5,7 +5,7 @@ import { User } from "../entities/User";
 import { MyContext } from "src/types";
 
 //Import from type-graghql
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 
 //Import argon2
 import argon2 from 'argon2';
@@ -13,18 +13,8 @@ import { __prod__ } from "../constants";
 
 //Import form @mikro-orm/postgresql
 import { EntityManager } from '@mikro-orm/postgresql'
-import session from "express-session";
-
-//This is an alternative way to declare arguments by declaring a class with all the arguments we want
-//Passing one object from this class instead of multiple '@Arg()'s
-@InputType()
-class UsernamePasswordInput {
-    @Field()
-    username: string
-
-    @Field()
-    password: string
-}
+import { validateEmail, validateRegister } from "src/utils/validators";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
 
 @ObjectType()
 class FieldError {
@@ -47,6 +37,14 @@ class UserResponce {
 @Resolver()
 export class UserResolver {
 
+    @Mutation(() => Boolean)
+    async forgotPassword( 
+        @Arg('email') email: String,
+        @Ctx() { } : MyContext
+    ){
+        // const user = await em.findOne(User, { email })
+    }
+
     @Query(() => User, {nullable: true})
     async me( @Ctx() { em, req, res } : MyContext ) {
 
@@ -65,29 +63,15 @@ export class UserResolver {
         @Arg('options') options : UsernamePasswordInput,
         @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
-        if(options.username.length < 2) {
-            return {
-                errors: [
-                    {
-                        field: 'username',
-                        message: 'Username must be at least 2 charachters.'
-                    }
-                ]
-            }
-        }
 
-        if(options.password.length < 3) {
-            return {
-                errors: [
-                    {
-                        field: 'password',
-                        message: 'password must be at least 3 charachters.'
-                    }
-                ]
-            }
+        const errors = validateRegister(options);
+
+        if(errors) {
+            return { errors };
         }
 
         const hashedPassword = await argon2.hash(options.password);
+        
         let user;
 
         // const user = await em.create(User, {
@@ -99,6 +83,7 @@ export class UserResolver {
         try {
             const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
                 username: options.username,
+                email: options.email,
                 password: hashedPassword,
                 created_at: new Date(),
                 updated_at: new Date()
@@ -119,7 +104,7 @@ export class UserResolver {
                     ]
                 }
             }
-            // console.log(err.message);
+            console.log(err.message);
         }
 
         req.session!.userId = user.id;
@@ -129,10 +114,14 @@ export class UserResolver {
 
     @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
     async login ( 
-        @Arg('options') options : UsernamePasswordInput,
+        @Arg('usernameOrEmail') usernameOrEmail : string,
+        @Arg('password') password : string,
         @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
-        const user = await em.findOne(User, { username: options.username })
+        const user = await em.findOne(User, 
+            validateEmail(usernameOrEmail) ? { username: usernameOrEmail} 
+            : {email: usernameOrEmail}
+            )
         if(!user) {
             return {
                 errors: [
@@ -144,7 +133,7 @@ export class UserResolver {
             }   
         } 
 
-        const validPassword = await argon2.verify(user.password ,options.password);
+        const validPassword = await argon2.verify(user.password ,password);
         if (!validPassword) {
             return {
                 errors: [
