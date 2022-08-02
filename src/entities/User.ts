@@ -17,9 +17,13 @@ export class User {
     @Property({type: 'date', onUpdate: () => new Date() })
     updatedAt = new Date();
 
-    @Field() //@Field() decorator declares whether this property is a db property or not. If it is not, then it will be hidden from graphql schema
+    @Field() // @Field() decorator declares whether this property is a db property or not. If it is not, then it will be hidden from graphql schema
     @Property({ type: 'text', unique: true })
     username!: string;
+
+    @Field()
+    @Property({ type: 'text', unique: true })
+    email!: string;
 
     @Property({ type: 'text' })
     password!: string;
