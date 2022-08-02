@@ -30,6 +30,12 @@ import 'reflect-metadata';
 //Import types
 import { MyContext } from './types';
 
+//Improt utils
+import { sendEmail } from './utils/sendEmail';
+
+//Improt entities
+import { User } from './entities/User';
+ 
 const main = async () => {
     
     const session = require('express-session');
@@ -66,7 +72,13 @@ const main = async () => {
         })
     )
 
+    // sendEmail('yossef.k.y333@gmail.com', 'Hello, Yousef');
+
     const orm = await MikroORM.init(microConfig);
+    
+    // Delete all the users from db
+    // orm.em.nativeDelete(User, {});
+
     await orm.getMigrator().up();
 
     const generator = orm.getSchemaGenerator();
