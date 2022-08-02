@@ -13,8 +13,10 @@ import { __prod__ } from "../constants";
 
 //Import form @mikro-orm/postgresql
 import { EntityManager } from '@mikro-orm/postgresql'
-import { validateEmail, validateRegister } from "src/utils/validators";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
+
+//Import validators
+import { validateEmail, validateRegister } from "../utils/validators";
 
 @ObjectType()
 class FieldError {
