@@ -4,7 +4,7 @@ export function validateEmail(e: string) {
 
     let emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-    if (emailRegEx.test(String(e).toLowerCase())) { 
+    if (e.length > 5 && emailRegEx.test(e.toLowerCase())) { 
         return {
             message: 'Valid E-mail'
         }; 
@@ -15,32 +15,20 @@ export function validateEmail(e: string) {
 
 export function validateRegister(options: UsernamePasswordInput) {
 
-    if(options.email.length < 5) {
-
-        return [
-            {
-                field: 'email',
-                message: 'E-mail is too short.'
-            }
-        ]
-    }
-
-    if(validateEmail(options.email)) {
-        if (!validateEmail(options.email)) {
-            return [
-                {
-                    field: 'email',
-                    message: 'Invalid E-mail.'
-                }
-            ]
-        } 
-    }
-
     if(options.username.length < 2) {
         return [
             {
                 field: 'username',
                 message: 'Username must be at least 2 charachters.'
+            }
+        ]
+    }
+ 
+    if (!validateEmail(options.email)) {
+        return [
+            {
+                field: 'email',
+                message: 'Invalid E-mail.'
             }
         ]
     }
