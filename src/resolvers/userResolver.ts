@@ -32,7 +32,7 @@ class FieldError {
 }
 
 @ObjectType()
-class UserResponce {
+class UserResponse {
     @Field(() => [FieldError], { nullable: true})
     errors?: FieldError[];
 
@@ -43,6 +43,60 @@ class UserResponce {
 @Resolver()
 export class UserResolver {
 
+    @Mutation(() => UserResponse)
+    async changePassword(
+        @Arg('token') token: string,
+        @Arg('newPassword') newPassword: string,
+        @Ctx() { redis, em, req } : MyContext
+    ): Promise<UserResponse> {
+        
+        if(newPassword.length < 3) {
+            return {
+                errors: [
+                    {
+                        field: 'newPassword',
+                        message: 'password must be at least 3 charachters.'
+                    }
+                ]
+            }
+        }
+
+        const userId = await redis.get(FORGOT_PASSWORD_PREFIX + token);
+        
+        if(!userId) {
+            return {
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'Expired token.'
+                    }
+                ]
+            }
+        }
+
+        const user = await em.findOne(User, { id: parseInt(userId) });
+
+        if(!user) {
+            return {
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'User does not exist any more.'
+                    }
+                ]
+            }
+        }
+
+        user.password = await argon2.hash(newPassword);
+
+        await em.persistAndFlush(user);
+        // Login user after he changed password
+        req.session!.userId = user.id;
+
+        return { user }
+
+    }
+
     @Mutation(() => Boolean)
     async forgotPassword( 
         @Arg('email') email: string,
@@ -52,7 +106,8 @@ export class UserResolver {
 
         if(!user) {
 
-            // The e-mail does not exist in the db
+            // No user with this e-mail exists in the db
+            // Just return true for security 
             return true;
         }
 
@@ -67,9 +122,8 @@ export class UserResolver {
 
         await sendEmail(
             email,
-            `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`    
+            `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`
         );  
-
         return true;
 
     }
@@ -87,11 +141,11 @@ export class UserResolver {
     
     }
 
-    @Mutation(() => UserResponce) // ** () => String ** is how you define what the function returns  
+    @Mutation(() => UserResponse) // ** () => String ** is how you define what the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
         @Ctx() { em, req, res } : MyContext
-    ): Promise<UserResponce> {
+    ): Promise<UserResponse> {
 
         const errors = validateRegister(options);
 
@@ -143,12 +197,12 @@ export class UserResolver {
         return { user }; 
     }
 
-    @Mutation(() => UserResponce) //** () => String ** is how you define what the function returns  
+    @Mutation(() => UserResponse) //** () => String ** is how you define what the function returns  
     async login ( 
         @Arg('usernameOrEmail') usernameOrEmail : string,
         @Arg('password') password : string,
         @Ctx() { em, req, res } : MyContext
-    ): Promise<UserResponce> {
+    ): Promise<UserResponse> {
         const user = await em.findOne(User, 
             validateEmail(usernameOrEmail) ? { email: usernameOrEmail} 
             : {username: usernameOrEmail}
