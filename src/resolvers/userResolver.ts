@@ -9,7 +9,7 @@ import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-gra
 
 //Import argon2
 import argon2 from 'argon2';
-import { __prod__ } from "../constants";
+import { FORGOT_PASSWORD_PREFIX } from "../constants";
 
 //Import form @mikro-orm/postgresql
 import { EntityManager } from '@mikro-orm/postgresql'
@@ -17,6 +17,10 @@ import { UsernamePasswordInput } from "./UsernamePasswordInput";
 
 //Import validators
 import { validateEmail, validateRegister } from "../utils/validators";
+import { sendEmail } from "../utils/sendEmail";
+
+//Import from uuid
+import {v4} from 'uuid';
 
 @ObjectType()
 class FieldError {
@@ -41,10 +45,33 @@ export class UserResolver {
 
     @Mutation(() => Boolean)
     async forgotPassword( 
-        @Arg('email') email: String,
-        @Ctx() { } : MyContext
+        @Arg('email') email: string,
+        @Ctx() { em, req, redis } : MyContext
     ){
-        // const user = await em.findOne(User, { email })
+        const user = await em.findOne(User, { email });
+
+        if(!user) {
+
+            // The e-mail does not exist in the db
+            return true;
+        }
+
+        const token = v4();
+ 
+        await redis.set(
+            FORGOT_PASSWORD_PREFIX + token, 
+            user.id, 
+            "EX",
+            1000 * 60 * 60 * 24 * 3 // 3 days
+        );
+
+        await sendEmail(
+            email,
+            `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`    
+        );  
+
+        return true;
+
     }
 
     @Query(() => User, {nullable: true})
