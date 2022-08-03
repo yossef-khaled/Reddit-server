@@ -30,6 +30,8 @@ import 'reflect-metadata';
 //Import types
 import { MyContext } from './types';
 
+import Redis from 'ioredis'
+
 //Improt utils
 import { sendEmail } from './utils/sendEmail';
 
@@ -40,9 +42,10 @@ const main = async () => {
     
     const session = require('express-session');
     const RedisStore = require('connect-redis')(session);
-    const { createClient } = require("redis");
-    const redisClient = createClient({ legacyMode: true });
-    redisClient.connect().catch(console.error);
+    // const { createClient } = require("ioredis");
+    const redis = new Redis();
+    // const redisClient = createClient({ legacyMode: true });
+    // redisClient.connect().catch(console.error);
 
     const app = express();
 
@@ -57,7 +60,7 @@ const main = async () => {
         session({
             name: 'redditCloneCookie',
             store: new RedisStore({ 
-                client: redisClient,
+                client: redis,
                 disableTouch: true 
               }),
             cookie: {
@@ -91,7 +94,7 @@ const main = async () => {
         }),
         csrfPrevention: true,
         cache: 'bounded',
-        context: ({ req, res }) : MyContext => ({ em : orm.em, req, res })
+        context: ({ req, res }) : MyContext => ({ em : orm.em, req, res, redis })
     });
 
     await apolloServer.start();
