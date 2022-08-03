@@ -60,13 +60,15 @@ export class UserResolver {
     
     }
 
-    @Mutation(() => UserResponce) // ** () => String ** is how you define waht the function returns  
+    @Mutation(() => UserResponce) // ** () => String ** is how you define what the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
         @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
 
         const errors = validateRegister(options);
+
+        console.log(errors);
 
         if(errors) {
             return { errors };
@@ -96,6 +98,7 @@ export class UserResolver {
             // await em.persistAndFlush(user);
         
         } catch(err) {
+            console.log(err);
             if(err.code === '23505' || err.detail.includes('already exists')) {
                 return {
                     errors: [
@@ -106,7 +109,6 @@ export class UserResolver {
                     ]
                 }
             }
-            console.log(err.message);
         }
 
         req.session!.userId = user.id;
@@ -114,21 +116,21 @@ export class UserResolver {
         return { user }; 
     }
 
-    @Mutation(() => UserResponce) //** () => String ** is how you define waht the function returns  
+    @Mutation(() => UserResponce) //** () => String ** is how you define what the function returns  
     async login ( 
         @Arg('usernameOrEmail') usernameOrEmail : string,
         @Arg('password') password : string,
         @Ctx() { em, req, res } : MyContext
     ): Promise<UserResponce> {
         const user = await em.findOne(User, 
-            validateEmail(usernameOrEmail) ? { username: usernameOrEmail} 
-            : {email: usernameOrEmail}
+            validateEmail(usernameOrEmail) ? { email: usernameOrEmail} 
+            : {username: usernameOrEmail}
             )
         if(!user) {
             return {
                 errors: [
                     {
-                        field: 'username',
+                        field: 'usernameOrEmail',
                         message: 'This user name does not exist'
                     }
                 ]
