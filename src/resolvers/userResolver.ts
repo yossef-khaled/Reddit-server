@@ -40,6 +40,15 @@ class UserResponse {
     user?: User;
 }
 
+@ObjectType()
+class ForgotPasswordReturn {
+    @Field(() => FieldError, { nullable: true})
+    error: FieldError;
+
+    @Field(() => Boolean, { nullable: true})
+    done: boolean;
+}
+
 @Resolver()
 export class UserResolver {
 
@@ -61,7 +70,8 @@ export class UserResolver {
             }
         }
 
-        const userId = await redis.get(FORGOT_PASSWORD_PREFIX + token);
+        const key = FORGOT_PASSWORD_PREFIX + token;
+        const userId = await redis.get(key);
         
         if(!userId) {
             return {
@@ -93,22 +103,34 @@ export class UserResolver {
         // Login user after he changed password
         req.session!.userId = user.id;
 
+        await redis.del(key);
+
         return { user }
 
     }
 
-    @Mutation(() => Boolean)
+    @Mutation(() => ForgotPasswordReturn)
     async forgotPassword( 
         @Arg('email') email: string,
         @Ctx() { em, req, redis } : MyContext
     ){
+
+        if(!validateEmail(email)) {
+            return {
+                error: {
+                    field: 'email',
+                    message: 'Invalid E-mail' 
+                }
+            }
+        }
+
         const user = await em.findOne(User, { email });
 
         if(!user) {
 
             // No user with this e-mail exists in the db
             // Just return true for security 
-            return true;
+            return {done: true};
         }
 
         const token = v4();
@@ -124,7 +146,7 @@ export class UserResolver {
             email,
             `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`
         );  
-        return true;
+        return {done: true};
 
     }
 
