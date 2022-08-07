@@ -1,11 +1,8 @@
 //Import entities
 import { Post } from "../entities/Post";
 
-//Improt types
-import { MyContext } from "src/types";
-
 //Import from type-graphql 
-import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Mutation, Query, Resolver } from "type-graphql";
 import { sleep } from "../utils/sleep";
 
 
@@ -14,45 +11,40 @@ export class PostResolver {
 
     //Query decorator is for getting data
     @Query(() => [Post]) //** () => String ** is how you define what the function returns  
-    async posts(@Ctx() { em } : MyContext): Promise<Post[]> {
+    async posts(): Promise<Post[]> {
         await sleep(3000);
-        return em.find(Post, {});
+        return Post.find();
     }
 
     //Query decorator is for getting data
     @Query(() => Post, { nullable: true })
     post(
-        @Arg('id') id: number,
-        @Ctx() { em } : MyContext
+        @Arg('id') id: number
     ): Promise<Post | null> {
-        return em.findOne(Post, { id });
+        return Post.findOneBy({id: id});
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Post)
     async createPost(
-        @Arg('title') title: string,
-        @Ctx() { em } : MyContext
+        @Arg('title') title: string
     ): Promise<Post> {
-        const post = em.create(Post, { title })
-        await em.persistAndFlush(post);
-        return post;
+        // 2 sql queries
+        return Post.create({title: title}).save();
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Post, { nullable: true })
     async upadatePost(
         @Arg('id') id : number,
-        @Arg('title', () => String, { nullable : true }) title: string,
-        @Ctx() { em } : MyContext
+        @Arg('title', () => String, { nullable : true }) title: string
     ): Promise<Post | null> {
-        const post = await em.findOne(Post, { id })
+        const post = await Post.findOneBy({id: id});
         if(!post) {
             return null;
         }
         if(title !== 'undefined') {
-            post.title = title;
-            await em.persistAndFlush(post)
+            await Post.update( {id}, {title} );
         }
         return post;
     }
@@ -60,10 +52,9 @@ export class PostResolver {
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Boolean)
     async deletePost(
-        @Arg('id') id : number,
-        @Ctx() { em } : MyContext
+        @Arg('id') id : number
     ): Promise<Boolean> {
-        await em.nativeDelete(Post, { id });
+        await Post.delete({id});
         return true;
     }
 

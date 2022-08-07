@@ -11,9 +11,11 @@ import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-gra
 import argon2 from 'argon2';
 import { FORGOT_PASSWORD_PREFIX } from "../constants";
 
-//Import form @mikro-orm/postgresql
-import { EntityManager } from '@mikro-orm/postgresql'
+//Import UsernamePasswordInput 
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
+
+//Import our datasource
+import redditCloneDataSource from '../utils/redditCloneDataSource';
 
 //Import validators
 import { validateEmail, validateRegister } from "../utils/validators";
@@ -56,7 +58,7 @@ export class UserResolver {
     async changePassword(
         @Arg('token') token: string,
         @Arg('newPassword') newPassword: string,
-        @Ctx() { redis, em, req } : MyContext
+        @Ctx() { redis, req } : MyContext
     ): Promise<UserResponse> {
         
         if(newPassword.length < 3) {
@@ -84,7 +86,8 @@ export class UserResolver {
             }
         }
 
-        const user = await em.findOne(User, { id: parseInt(userId) });
+        const userIdAsANum = parseInt(userId)
+        const user = await User.findOneBy({ id: userIdAsANum });
 
         if(!user) {
             return {
@@ -97,9 +100,11 @@ export class UserResolver {
             }
         }
 
-        user.password = await argon2.hash(newPassword);
-
-        await em.persistAndFlush(user);
+        await User.update(
+            {id: userIdAsANum}, 
+            {password: await argon2.hash(newPassword)
+        });
+         
         // Login user after he changed password
         req.session!.userId = user.id;
 
@@ -112,7 +117,7 @@ export class UserResolver {
     @Mutation(() => ForgotPasswordReturn)
     async forgotPassword( 
         @Arg('email') email: string,
-        @Ctx() { em, req, redis } : MyContext
+        @Ctx() { redis } : MyContext
     ){
 
         if(!validateEmail(email)) {
@@ -124,7 +129,12 @@ export class UserResolver {
             }
         }
 
-        const user = await em.findOne(User, { email });
+        // Where condition is a must here as we are not searching with the primary key
+        const user = await User.findOne({
+            where: {
+                email: email
+            }
+        });
 
         if(!user) {
 
@@ -151,27 +161,24 @@ export class UserResolver {
     }
 
     @Query(() => User, {nullable: true})
-    async me( @Ctx() { em, req, res } : MyContext ) {
+    me( @Ctx() { req } : MyContext ) {
 
         // You are not logged in
         if(!req.session!.userId) {
             return null
         }
 
-        const user = await em.findOne(User, { id: req.session!.userId});
-        return user;
+        return User.findOneBy({ id: req.session!.userId});
     
     }
 
     @Mutation(() => UserResponse) // ** () => String ** is how you define what the function returns  
     async register ( 
         @Arg('options') options : UsernamePasswordInput,
-        @Ctx() { em, req, res } : MyContext
+        @Ctx() { req } : MyContext
     ): Promise<UserResponse> {
 
         const errors = validateRegister(options);
-
-        console.log(errors);
 
         if(errors) {
             return { errors };
@@ -180,28 +187,26 @@ export class UserResolver {
         const hashedPassword = await argon2.hash(options.password);
         
         let user;
-
-        // const user = await em.create(User, {
-        //     username: options.username,
-        //     password: hashedPassword 
-        // });
         
         //This try catch piece of code is to catch any error from the db. 
         try {
-            const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
+            // insert user using query builder
+            const result = await redditCloneDataSource
+            .createQueryBuilder()
+            .insert()
+            .into(User)
+            .values({
                 username: options.username,
-                email: options.email,
                 password: hashedPassword,
-                created_at: new Date(),
-                updated_at: new Date()
+                email: options.email
             })
-            .returning('*');
-            user = result[0];
+            .returning("*")
+            .execute()
 
-            // await em.persistAndFlush(user);
+            user = result.raw[0];
         
         } catch(err) {
-            console.log(err);
+            console.log(err);   
             if(err.code === '23505' || err.detail.includes('already exists')) {
                 return {
                     errors: [
@@ -223,12 +228,15 @@ export class UserResolver {
     async login ( 
         @Arg('usernameOrEmail') usernameOrEmail : string,
         @Arg('password') password : string,
-        @Ctx() { em, req, res } : MyContext
+        @Ctx() { req } : MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, 
-            validateEmail(usernameOrEmail) ? { email: usernameOrEmail} 
-            : {username: usernameOrEmail}
-            )
+        // Discover whether he is loggin in with username or email 
+        const user = await User.findOne(
+            validateEmail(usernameOrEmail)  
+            ? {where: { email: usernameOrEmail }} 
+            : {where: { username: usernameOrEmail }}
+        )
+
         if(!user) {
             return {
                 errors: [
