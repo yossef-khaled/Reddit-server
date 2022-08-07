@@ -1,11 +1,9 @@
-//Import from @mikro-orm
-import { MikroORM } from '@mikro-orm/core';
+// Import reflect-metadata
+// NOTE: this import should be on top of all other imports
+import 'reflect-metadata';
 
 //Import consts
 import { __prod__ } from './constants';
-
-//Import micro configuration
-import microConfig from './mikro-orm.config'; 
 
 //Import express
 import express from 'express';
@@ -24,21 +22,13 @@ import { HelloResolver } from './resolvers/helloResolver';
 import { PostResolver } from './resolvers/postResolver';
 import { UserResolver } from './resolvers/userResolver';
 
-//Import reflect-metadata
-import 'reflect-metadata';
-
 //Import types
 import { MyContext } from './types';
 
 import Redis from 'ioredis'
-
-//Improt utils
-import { sendEmail } from './utils/sendEmail';
-
-//Improt entities
-import { User } from './entities/User';
+import redditCloneDataSource from './utils/redditCloneDataSource';
  
-const main = async () => {
+const main = async () => {     
     
     const session = require('express-session');
     const RedisStore = require('connect-redis')(session);
@@ -76,16 +66,8 @@ const main = async () => {
     )
 
     // sendEmail('yossef.k.y333@gmail.com', 'Hello, Yousef');
-
-    const orm = await MikroORM.init(microConfig);
     
-    // Delete all the users from db
-    // orm.em.nativeDelete(User, {});
-
-    await orm.getMigrator().up();
-
-    const generator = orm.getSchemaGenerator();
-    await generator.updateSchema();
+    redditCloneDataSource.initialize()
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
@@ -94,7 +76,7 @@ const main = async () => {
         }),
         csrfPrevention: true,
         cache: 'bounded',
-        context: ({ req, res }) : MyContext => ({ em : orm.em, req, res, redis })
+        context: ({ req, res }) : MyContext => ({ req, res, redis })
     });
 
     await apolloServer.start();
