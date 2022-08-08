@@ -2,9 +2,32 @@
 import { Post } from "../entities/Post";
 
 //Import from type-graphql 
-import { Arg, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver, UseMiddleware } from "type-graphql";
 import { sleep } from "../utils/sleep";
+import { MyContext } from "src/types";
 
+//Improt middlewares
+import { isAuth } from "../middleware/isAuth";
+import { FieldError } from "./userResolver";
+
+@InputType()
+class PostInput {
+    @Field()
+    title!: string;
+
+    @Field()
+    text!: string;
+
+}
+
+@ObjectType()
+class CreatePostReturn {
+    @Field(() => [FieldError], { nullable: true})
+    errors?: FieldError[];
+
+    @Field(() => Post, { nullable: true})
+    post?: Post;
+}
 
 @Resolver()
 export class PostResolver {
@@ -25,12 +48,44 @@ export class PostResolver {
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
-    @Mutation(() => Post)
+    @Mutation(() => CreatePostReturn)
+    @UseMiddleware(isAuth)
     async createPost(
-        @Arg('title') title: string
-    ): Promise<Post> {
+        @Arg('options') options: PostInput,
+        @Ctx() { req }: MyContext
+    ): Promise<CreatePostReturn> {
+
+        
+        if( !options.title || options.title == '' ) {
+            return {
+                errors: [
+                    {
+                        field: 'title',
+                        message: 'Can not leave title field empty.'
+                    }
+                ]
+            }
+        }
+        
+        if(!options.text || options.text == '') {
+            return {
+                errors: [
+                    {
+                        field: 'text',
+                        message: 'Can not leave text field empty.'
+                    }
+                ]
+            }
+        }
+        
         // 2 sql queries
-        return Post.create({title: title}).save();
+        return {
+            post: await Post.create({
+                ...options,
+                creatorId: req.session?.userId
+            })
+            .save()
+        }
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
