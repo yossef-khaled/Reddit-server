@@ -4,6 +4,7 @@ import { DataSource } from "typeorm";
 //Improt entities
 import { Post } from "../entities/Post";
 import { User } from "../entities/User";
+import path from 'path';
 
 const redditCloneDataSource = new DataSource({
     type: 'postgres',
@@ -12,6 +13,7 @@ const redditCloneDataSource = new DataSource({
     password: 'postgres',
     logging: true,
     synchronize: true,
+    migrations: [path.join(__dirname, './migrations/*')],
     entities: [User, Post]
 });
 
