@@ -66,8 +66,9 @@ const main = async () => {
     )
 
     // sendEmail('yossef.k.y333@gmail.com', 'Hello, Yousef');
-    
-    redditCloneDataSource.initialize()
+
+    await redditCloneDataSource.initialize();
+    await redditCloneDataSource.runMigrations();
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
