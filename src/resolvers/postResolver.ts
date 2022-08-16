@@ -92,8 +92,6 @@ export class PostResolver {
         , replacements)
         .catch((error) => console.log(error)); 
 
-        console.log(posts);
-
         // const qb = redditCloneDataSource
         // .getRepository(Post)
         // .createQueryBuilder("p")
