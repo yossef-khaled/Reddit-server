@@ -70,6 +70,8 @@ const main = async () => {
     await redditCloneDataSource.initialize();
     await redditCloneDataSource.runMigrations();
 
+    // await Post.delete({});
+
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [HelloResolver, PostResolver, UserResolver],
