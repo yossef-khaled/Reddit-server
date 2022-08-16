@@ -1,7 +1,7 @@
 //Import from typeorm
 import { DataSource } from "typeorm";
 
-//Improt entities
+//Import entities
 import { Post } from "../entities/Post";
 import { User } from "../entities/User";
 import path from 'path';
