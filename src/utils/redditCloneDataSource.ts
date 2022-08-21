@@ -5,6 +5,7 @@ import { DataSource } from "typeorm";
 import { Post } from "../entities/Post";
 import { User } from "../entities/User";
 import path from 'path';
+import { Updoot } from "../entities/Updoot";
 
 const redditCloneDataSource = new DataSource({
     type: 'postgres',
@@ -14,7 +15,7 @@ const redditCloneDataSource = new DataSource({
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [User, Post]
+    entities: [User, Post, Updoot]
 });
 
 export default redditCloneDataSource;
