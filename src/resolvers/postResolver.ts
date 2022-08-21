@@ -3,7 +3,6 @@ import { Post } from "../entities/Post";
 
 //Import from type-graphql 
 import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, ObjectType, Query, Resolver, Root, UseMiddleware } from "type-graphql";
-import { sleep } from "../utils/sleep";
 import { MyContext } from "src/types";
 
 //Improt middlewares
@@ -12,6 +11,8 @@ import { FieldError } from "./userResolver";
 
 //Import our data source
 import redditCloneDataSource from '../utils/redditCloneDataSource';
+import { Updoot } from "../entities/Updoot";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -56,6 +57,44 @@ export class PostResolver {
         
     }
 
+    @Mutation(() => Boolean)
+    @UseMiddleware(isAuth)
+    async vote(
+        @Ctx() {req} : MyContext,
+        @Arg('postId', () => Number) postId: number,
+        @Arg('value', () => Int) value: number
+    ): Promise<boolean> {
+
+        const userId = req.session?.userId;
+
+        const realValue = value > 0 ? +1 : -1; 
+
+        // await Updoot.insert({
+        //     value,
+        //     postId,
+        //     userId
+        // })
+
+        // This query has no array of values as all the values are integers 
+        // If we added one so, it would throw an error 
+        await Post.query(
+            `
+            START TRANSACTION;
+
+            insert into updoot ("userId", "postId", value)
+            values(${userId}, ${postId}, ${realValue});
+            
+            update post
+            set points = points + ${realValue}
+            where id = ${postId};
+            
+            COMMIT;
+            `
+            );
+
+        return true;
+
+    }
 
     //Query decorator is for getting data
     @Query(() => PaginatedPosts) //** () => String ** is how you define what the function returns  
