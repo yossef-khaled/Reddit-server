@@ -67,7 +67,7 @@ export class PostResolver {
 
         const userId = req.session?.userId;
 
-        const realValue = value > 0 ? +1 : -1; 
+        const realValue = value > 0 ? +1 : -1;
 
         // await Updoot.insert({
         //     value,
@@ -75,25 +75,56 @@ export class PostResolver {
         //     userId
         // })
 
-        // This query has no array of values as all the values are integers 
-        // If we added one so, it would throw an error 
-        await Post.query(
+        const [oldVote] = await Updoot.query(
             `
-            START TRANSACTION;
-
-            insert into updoot ("userId", "postId", value)
-            values(${userId}, ${postId}, ${realValue});
-            
-            update post
-            set points = points + ${realValue}
-            where id = ${postId};
-            
-            COMMIT;
+            SELECT * from updoot
+            WHERE "userId" = ${userId} AND "postId" = ${postId};
             `
-            );
+        )
 
-        return true;
+        if(oldVote) {
+            if(oldVote.value != realValue) {
+                redditCloneDataSource.transaction(async (tm) => {
+                    await tm.query(
+                    `
+                    UPDATE updoot
+                    SET value = $1
+                    WHERE "userId" = $2 AND "postId" = $3
+                    `, [realValue, userId, postId]);
+    
+                    await tm.query(
+                    `
+                    UPDATE post
+                    set points = points + $1
+                    WHERE id = $2;
+                    `, [2 * realValue, postId]);
+                })
+    
+                return true;    
+            }
+            else {
+                return false;
+            }
+                
+        } 
+        else {
+            redditCloneDataSource.transaction(async (tm) => {
+                await tm.query(
+                `
+                INSERT INTO updoot ("userId", "postId", value)
+                values($1, $2, $3);
+                `, [userId, postId, realValue]);
 
+                await tm.query(
+                `
+                UPDATE post
+                set points = points + $1
+                WHERE id = $2;
+                `, [realValue, postId]);
+            })
+
+            return true;
+        }
     }
 
     //Query decorator is for getting data
@@ -103,7 +134,7 @@ export class PostResolver {
         @Arg('cursor', () => String, { nullable: true }) cursor: string | null
     ): Promise<PaginatedPosts> {
 
-        const realLimit = Math.min(10, limit);
+        const realLimit = Math.min(100, limit);
         const realLimitPlusOne = realLimit + 1;
 
         const replacements: (number | object)[] = [realLimitPlusOne]
