@@ -53,6 +53,17 @@ class ForgotPasswordReturn {
 
 @Resolver(User)
 export class UserResolver {
+
+    @Query(() => [User])
+    users(): Promise<User[] | null> {
+        // return User.find({});
+        
+        return redditCloneDataSource
+        .query(`
+        SELECT * FROM user;
+        `);
+    } 
+
     @FieldResolver(() => String)
     email(
         @Root() user: User,
@@ -249,7 +260,19 @@ export class UserResolver {
             validateEmail(usernameOrEmail)  
             ? {where: { email: usernameOrEmail }} 
             : {where: { username: usernameOrEmail }}
-        )
+        ) 
+
+        // const user = await redditCloneDataSource
+        // .query(
+        //     `
+        //     SELECT * FROM user 
+        //     WHERE ${
+        //         validateEmail(usernameOrEmail) ? 
+        //         'email = $1'
+        //         : 'username = $1' 
+        //     }
+        //     `, [usernameOrEmail]
+        // )
 
         if(!user) {
             return {
@@ -273,6 +296,7 @@ export class UserResolver {
                 ]
             }
         }
+
 
         req.session!.userId = user.id;
 
