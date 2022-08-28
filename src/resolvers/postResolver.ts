@@ -39,6 +39,7 @@ class PaginatedPosts {
 
     @Field(() => Boolean)
     hasMore: boolean;
+
 }
 
 @Resolver(Post)
@@ -130,17 +131,25 @@ export class PostResolver {
     //Query decorator is for getting data
     @Query(() => PaginatedPosts) //** () => String ** is how you define what the function returns  
     async posts(
+        @Ctx() { req }: MyContext,
         @Arg('limit', () => Int) limit: number,
         @Arg('cursor', () => String, { nullable: true }) cursor: string | null
     ): Promise<PaginatedPosts> {
 
-        const realLimit = Math.min(100, limit);
+        const userId = req.session?.userId;
+        const realLimit = Math.min(10, limit);
         const realLimitPlusOne = realLimit + 1;
 
         const replacements: (number | object)[] = [realLimitPlusOne]
 
+        if(userId) {
+            replacements.push(userId);
+        }
+
+        let cursorIndex = 3;
         if(cursor) {
             replacements.push(new Date(parseInt(cursor)));
+            cursorIndex = replacements.length;
         }
 
         const posts = await redditCloneDataSource.query(
@@ -152,10 +161,15 @@ export class PostResolver {
                     'email', u.email,
                     'createdAt', u."createdAt",
                     'updatedAt', u."updatedAt"
-                ) creator
+                ) creator,
+                ${
+                    userId ?
+                    '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
+                    : 'null as "voteStatus"'
+                }
                 from post p 
                 inner join public.user u on u.id = p."creatorId"
-                ${cursor ? `where p."createdAt" < $2` : ''}
+                ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
                 order by p."createdAt" DESC
                 limit $1
             `
@@ -179,11 +193,13 @@ export class PostResolver {
 
         // const posts = await qb.getMany();
         const hasMore =  posts.length === realLimitPlusOne;
+        if(hasMore) {
+            posts.pop();
+        }
         
-        posts.pop();
         return {
             posts,
-            hasMore
+            hasMore,
         };
     }
 
@@ -237,7 +253,7 @@ export class PostResolver {
 
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Post, { nullable: true })
-    async upadatePost(
+    async updatePost(
         @Arg('id') id : number,
         @Arg('title', () => String, { nullable : true }) title: string
     ): Promise<Post | null> {
