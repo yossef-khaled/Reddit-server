@@ -56,12 +56,12 @@ export class UserResolver {
 
     @Query(() => [User])
     users(): Promise<User[] | null> {
-        // return User.find({});
+        return User.find({});
         
-        return redditCloneDataSource
-        .query(`
-        SELECT * FROM user;
-        `);
+        // return redditCloneDataSource
+        // .query(`
+        // SELECT * FROM user;
+        // `);
     } 
 
     @FieldResolver(() => String)
