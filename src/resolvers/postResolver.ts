@@ -275,10 +275,19 @@ export class PostResolver {
 
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Boolean)
+    @UseMiddleware(isAuth)
     async deletePost(
-        @Arg('id') id : number
+        @Arg('id', () => Int) id : number,
+        @Ctx() {req} : MyContext
     ): Promise<Boolean> {
-        await Post.delete({id});
-        return true;
+        
+        const postedByUser = await Post.findOneBy({id, creatorId: req.session?.userId});
+        if(postedByUser) {
+            await Updoot.delete({postId: id});
+            await Post.delete({id, creatorId: req.session?.userId});
+            return true;
+        }
+
+        throw new Error('Not authorized to delete this post.');
     }
 }
