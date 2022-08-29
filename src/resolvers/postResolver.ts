@@ -12,7 +12,6 @@ import { FieldError } from "./userResolver";
 //Import our data source
 import redditCloneDataSource from '../utils/redditCloneDataSource';
 import { Updoot } from "../entities/Updoot";
-import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -204,11 +203,18 @@ export class PostResolver {
     }
 
     //Query decorator is for getting data
-    @Query(() => Post, { nullable: true })
-    post(
-        @Arg('id') id: number
-    ): Promise<Post | null> {
-        return Post.findOneBy({id: id});
+    @Query(() => Post)
+    async post(
+        @Arg('id', () => Int) id: number
+    ): Promise<Post> {
+        const response = await redditCloneDataSource
+        .getRepository(Post)
+        .createQueryBuilder('post')
+        .where('post.id = :id', {id})
+        .leftJoinAndSelect('post.creator', 'user')
+        .getMany();
+
+        return response[0];
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
@@ -275,5 +281,4 @@ export class PostResolver {
         await Post.delete({id});
         return true;
     }
-
 }
