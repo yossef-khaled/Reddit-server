@@ -259,18 +259,24 @@ export class PostResolver {
 
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => Post, { nullable: true })
+    @UseMiddleware(isAuth)
     async updatePost(
         @Arg('id') id : number,
-        @Arg('title', () => String, { nullable : true }) title: string
+        @Arg('title', () => String, { nullable : true }) title: string,
+        @Arg('text', () => String, { nullable : true }) text: string,
+        @Ctx() {req}: MyContext
     ): Promise<Post | null> {
-        const post = await Post.findOneBy({id: id});
-        if(!post) {
-            return null;
-        }
-        if(title !== 'undefined') {
-            await Post.update( {id}, {title} );
-        }
-        return post;
+        const result = await redditCloneDataSource
+        .getRepository(Post)
+        .createQueryBuilder('post')
+        .update(Post)
+        .set( {title, text} )
+        .where('id = :id AND "creatorId" = :creatorId ', { id, creatorId: req.session?.userId})
+        .returning('*')
+        .execute()
+
+        return result.raw[0];
+        
     }
 
     //Mutation decorator is for updating, deleting, & inserting data
