@@ -12,6 +12,7 @@ import { FieldError } from "./userResolver";
 //Import our data source
 import redditCloneDataSource from '../utils/redditCloneDataSource';
 import { Updoot } from "../entities/Updoot";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -55,6 +56,14 @@ export class PostResolver {
             return `${post.text.slice(0, 50)}...`;
         }
         
+    }
+
+    @FieldResolver(() => User)
+    creator(
+        @Root() post: Post,
+        @Ctx() {userLoader}: MyContext
+    ) {
+        return userLoader.load(post.creatorId);
     }
 
     @Mutation(() => Boolean)
@@ -154,13 +163,6 @@ export class PostResolver {
         const posts = await redditCloneDataSource.query(
             `
                 select p.*, 
-                json_build_object(
-                    'id', u.id,
-                    'username', u.username,
-                    'email', u.email,
-                    'createdAt', u."createdAt",
-                    'updatedAt', u."updatedAt"
-                ) creator,
                 ${
                     userId ?
                     '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
@@ -271,7 +273,6 @@ export class PostResolver {
         .createQueryBuilder('post')
         .update(Post)
         .set( {title, text} )
-        .where('id = :id AND "creatorId" = :creatorId ', { id, creatorId: req.session?.userId})
         .returning('*')
         .execute()
 
