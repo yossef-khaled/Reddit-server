@@ -261,7 +261,7 @@ export class PostResolver {
     @Mutation(() => Post, { nullable: true })
     @UseMiddleware(isAuth)
     async updatePost(
-        @Arg('id') id : number,
+        @Arg('id', () => Int) id : number,
         @Arg('title', () => String, { nullable : true }) title: string,
         @Arg('text', () => String, { nullable : true }) text: string,
         @Ctx() {req}: MyContext
