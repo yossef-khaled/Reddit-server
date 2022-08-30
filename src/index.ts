@@ -27,6 +27,7 @@ import { MyContext } from './types';
 
 import Redis from 'ioredis'
 import redditCloneDataSource from './utils/redditCloneDataSource';
+import { createUsersLoader } from './utils/createUsersLoader';
  
 const main = async () => {     
     
@@ -79,7 +80,13 @@ const main = async () => {
         }),
         csrfPrevention: true,
         cache: 'bounded',
-        context: ({ req, res }) : MyContext => ({ req, res, redis })
+        context: ({ req, res }) : MyContext => 
+        ({ 
+            req, 
+            res, 
+            redis,
+            userLoader: createUsersLoader()
+        })
     });
 
     await apolloServer.start();
