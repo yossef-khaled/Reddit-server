@@ -160,7 +160,6 @@ export class PostResolver {
     //Query decorator is for getting data
     @Query(() => PaginatedPosts) //** () => String ** is how you define what the function returns  
     async posts(
-        @Ctx() { req }: MyContext,
         @Arg('limit', () => Int) limit: number,
         @Arg('cursor', () => String, { nullable: true }) cursor: string | null
     ): Promise<PaginatedPosts> {
@@ -272,10 +271,8 @@ export class PostResolver {
     @Mutation(() => Post, { nullable: true })
     @UseMiddleware(isAuth)
     async updatePost(
-        @Arg('id', () => Int) id : number,
         @Arg('title', () => String, { nullable : true }) title: string,
         @Arg('text', () => String, { nullable : true }) text: string,
-        @Ctx() {req}: MyContext
     ): Promise<Post | null> {
         const result = await redditCloneDataSource
         .getRepository(Post)
