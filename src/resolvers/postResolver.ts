@@ -44,6 +44,8 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export class PostResolver {
+
+    // any function with the decorator @FieldResolver will be excecuted if the client asked for the value with the name of the function 
     @FieldResolver(() => String)
     textSnippet(
         @Root() post: Post
@@ -58,12 +60,31 @@ export class PostResolver {
         
     }
 
+    // any function with the decorator @FieldResolver will be excecuted if the client asked for the value with the name of the function
     @FieldResolver(() => User)
     creator(
         @Root() post: Post,
         @Ctx() {userLoader}: MyContext
     ) {
         return userLoader.load(post.creatorId);
+    }
+
+    // any function with the decorator @FieldResolver will be excecuted if the client asked for the value with the name of the function
+    @FieldResolver(() => Int, {nullable: true})
+    async voteStatus(
+        @Root() post: Post,
+        @Ctx() {updootLoader, req}: MyContext
+    ) {
+        if(!req.session?.userId) {
+            return null;
+        }
+
+        const updoot = await updootLoader.load({
+            postId: post.id, 
+            userId: req.session?.userId
+        });
+
+        return updoot ? updoot.value : null;
     }
 
     @Mutation(() => Boolean)
@@ -144,33 +165,21 @@ export class PostResolver {
         @Arg('cursor', () => String, { nullable: true }) cursor: string | null
     ): Promise<PaginatedPosts> {
 
-        const userId = req.session?.userId;
         const realLimit = Math.min(10, limit);
         const realLimitPlusOne = realLimit + 1;
 
         const replacements: (number | object)[] = [realLimitPlusOne]
 
-        if(userId) {
-            replacements.push(userId);
-        }
-
-        let cursorIndex = 3;
         if(cursor) {
             replacements.push(new Date(parseInt(cursor)));
-            cursorIndex = replacements.length;
         }
 
         const posts = await redditCloneDataSource.query(
             `
-                select p.*, 
-                ${
-                    userId ?
-                    '(SELECT value FROM updoot WHERE "userId" = $2 AND "postId" = p.id) "voteStatus"'
-                    : 'null as "voteStatus"'
-                }
+                select p.*
                 from post p 
                 inner join public.user u on u.id = p."creatorId"
-                ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
+                ${cursor ? `where p."createdAt" < $2` : ''}
                 order by p."createdAt" DESC
                 limit $1
             `
