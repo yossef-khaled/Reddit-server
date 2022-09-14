@@ -28,6 +28,7 @@ import { MyContext } from './types';
 import Redis from 'ioredis'
 import redditCloneDataSource from './utils/redditCloneDataSource';
 import { createUsersLoader } from './utils/createUsersLoader';
+import { createUpdootsLoader } from './utils/createUpdootsLoader';
  
 const main = async () => {     
     
@@ -85,7 +86,8 @@ const main = async () => {
             req, 
             res, 
             redis,
-            userLoader: createUsersLoader()
+            userLoader: createUsersLoader(),
+            updootLoader: createUpdootsLoader(),
         })
     });
 
