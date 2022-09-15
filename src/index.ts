@@ -29,13 +29,16 @@ import Redis from 'ioredis'
 import redditCloneDataSource from './utils/redditCloneDataSource';
 import { createUsersLoader } from './utils/createUsersLoader';
 import { createUpdootsLoader } from './utils/createUpdootsLoader';
- 
+
+//Import dotenv-safe
+import 'dotenv-safe/config'
+
 const main = async () => {     
     
     const session = require('express-session');
     const RedisStore = require('connect-redis')(session);
     // const { createClient } = require("ioredis");
-    const redis = new Redis();
+    const redis = new Redis(process.env.REDIS_URL);
     // const redisClient = createClient({ legacyMode: true });
     // redisClient.connect().catch(console.error);
 
@@ -44,7 +47,7 @@ const main = async () => {
     app.set('trust proxy', false);
 
     app.use(cors({
-        origin: ['http://localhost:3000', 'https://studio.apollographql.com'], 
+        origin: [process.env.CORS_ORIGIN_1, process.env.CORS_ORIGIN_2], 
         credentials: true, // Should be true if the front-end requires credintials
     }))
 
@@ -60,9 +63,10 @@ const main = async () => {
                 httpOnly: true, // This won't make the frontend able to access the cookies
                 secure: false, // Cookie only works with HTTPS
                 sameSite: 'none', // CSRF. "none" will allow sending cookies
+                domain: __prod__ ? '.aws.com' : undefined
             },
             saveUninitialized: false,
-            secret: "keyboard cat",
+            secret: process.env.SESSION_SECRET,
             resave: false,
         })
     )
@@ -96,7 +100,7 @@ const main = async () => {
     // Create graphql end point with apollo
     apolloServer.applyMiddleware({ app, cors: false});
 
-    app.listen(4000, () => {
+    app.listen(process.env.PORT, () => {
         console.log('RUNNING ON PORT 4000....');
     })
 

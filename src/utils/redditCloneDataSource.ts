@@ -7,13 +7,13 @@ import { User } from "../entities/User";
 import path from 'path';
 import { Updoot } from "../entities/Updoot";
 
+//Import dotenv-safe
+import 'dotenv-safe/config'
+
 const redditCloneDataSource = new DataSource({
     type: 'postgres',
-    database: 'redditClone2',
-    username: 'postgres',
-    password: 'postgres',
+    url: process.env.DATABASE_URL,
     logging: true,
-    synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
     entities: [User, Post, Updoot]
 });
