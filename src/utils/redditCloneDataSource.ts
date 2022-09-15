@@ -14,8 +14,9 @@ const redditCloneDataSource = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
     logging: true,
+    synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [User, Post, Updoot]
+    entities: [User, Post, Updoot],
 });
 
 export default redditCloneDataSource;
