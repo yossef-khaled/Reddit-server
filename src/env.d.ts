@@ -7,9 +7,8 @@ declare global {
       SESSION_SECRET: string;
       CORS_ORIGIN_1: string;
       CORS_ORIGIN_2: string;
-      MAILTRAP_USERNAME: string;
-      MAILTRAP_PASSWORD: string;
       GMAIL_SMTP_PASSWORD: string;
+      GMAIL_SMTP_USERNAME: string;
     }
   }
 }
