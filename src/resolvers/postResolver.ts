@@ -227,6 +227,28 @@ export class PostResolver {
         return response[0];
     }
 
+    //Query decorator is for getting data
+    @Query(() => [Post])
+    async searchPosts(
+        @Arg('searchString', () => String) searchString: string
+    ): Promise<Post[]> {
+
+        if(!searchString || searchString === '') {
+            return [];
+        }
+
+        const response = await redditCloneDataSource
+        .query(
+        `
+          SELECT * FROM post
+          WHERE title LIKE '%${searchString}%'
+          OR text LIKE '%${searchString}%'
+          ;
+        `);
+        
+        return response;
+    }
+
     //Mutation decorator is for updating, deleting, & inserting data
     @Mutation(() => CreatePostReturn)
     @UseMiddleware(isAuth)
@@ -271,16 +293,19 @@ export class PostResolver {
     @Mutation(() => Post, { nullable: true })
     @UseMiddleware(isAuth)
     async updatePost(
+        @Arg('id', () => Int) id: number,
         @Arg('title', () => String, { nullable : true }) title: string,
         @Arg('text', () => String, { nullable : true }) text: string,
     ): Promise<Post | null> {
         const result = await redditCloneDataSource
-        .getRepository(Post)
-        .createQueryBuilder('post')
-        .update(Post)
-        .set( {title, text} )
-        .returning('*')
-        .execute()
+        .query(
+        `
+            UPDATE post
+            SET title = $1, text = $2
+            WHERE post.id = $3
+            RETURNING *
+        `
+        , [title, text, id]);
 
         return result.raw[0];
         
