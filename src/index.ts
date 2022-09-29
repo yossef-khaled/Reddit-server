@@ -10,6 +10,7 @@ import express from 'express';
 
 //Import from apollo
 import { ApolloServer } from 'apollo-server-express';
+import { ApolloServerPluginLandingPageLocalDefault } from 'apollo-server-core';
 
 //Import from graphql
 import { buildSchema } from 'type-graphql';
@@ -37,10 +38,11 @@ const main = async () => {
     
     const session = require('express-session');
     const RedisStore = require('connect-redis')(session);
-    // const { createClient } = require("ioredis");
-    const redis = new Redis(process.env.REDIS_URL);
-    // const redisClient = createClient({ legacyMode: true });
-    // redisClient.connect().catch(console.error);
+    
+    const redis = new Redis({
+        port: parseInt(process.env.REDIS_PORT),
+        host: process.env.REDIS_HOST
+    }); 
 
     const app = express();
 
@@ -62,16 +64,14 @@ const main = async () => {
                 maxAge: 1000 * 60 * 60 * 24 * 356 * 10, // 10 years
                 httpOnly: true, // This won't make the frontend able to access the cookies
                 secure: false, // Cookie only works with HTTPS
-                sameSite: 'none', // CSRF. "none" will allow sending cookies
-                domain: __prod__ ? '.aws.com' : undefined
+                sameSite: 'lax', // CSRF. "none" will allow sending cookies
+                // domain: __prod__ ? '.aws.com' : undefined // Need to uncomment this when hosting the API 
             },
             saveUninitialized: false,
             secret: process.env.SESSION_SECRET,
             resave: false,
         })
     )
-
-    // sendEmail('yossef.k.y333@gmail.com', 'Hello, Yousef');
 
     await redditCloneDataSource.initialize();
     await redditCloneDataSource.runMigrations();
@@ -83,8 +83,12 @@ const main = async () => {
             resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false           
         }),
+        introspection: __prod__,
         csrfPrevention: true,
         cache: 'bounded',
+        plugins: [
+            ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+        ],
         context: ({ req, res }) : MyContext => 
         ({ 
             req, 
