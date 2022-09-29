@@ -169,12 +169,13 @@ export class UserResolver {
         }
 
         const token = v4();
+        const key = FORGOT_PASSWORD_PREFIX + token;
  
         await redis.set(
-            FORGOT_PASSWORD_PREFIX + token, 
+            key, 
             user.id, 
             "EX",
-            1000 * 60 * 60 * 24 * 3 // 3 days
+            1000 * 60 * 60 * 3 // 3 hours
         );
 
         await sendEmail(
@@ -184,10 +185,11 @@ export class UserResolver {
                 <p>
                     Click the link below to change your password (Make it more clear for you this time). 
                 </p>
-                <a href="http://localhost:3000/change-password/${token}">Reset password</a>
+                <a href="http://${process.env.FRONT_END_HOST}:${process.env.FRONT_END_PORT}/change-password/${token}">Reset password</a>
             </div>
             `
         );  
+
         return {done: true};
 
     }
